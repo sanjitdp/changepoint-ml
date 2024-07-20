@@ -28,3 +28,6 @@ class FeedforwardEarthmoverNetwork(nn.Module):
     def zero_parameters(self):
         for p in self.parameters():
             p.data.zero_()
+
+    def loss(self, y_pred, y_true, x):
+        return self.earthmover_loss(y_pred, y_true, x)

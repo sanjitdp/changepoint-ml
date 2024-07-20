@@ -3,18 +3,19 @@ from matplotlib import pyplot as plt
 import torch
 from torch import optim
 from models.feedforward_earthmover_network import FeedforwardEarthmoverNetwork
+from models.feedforward_cusum_network import FeedforwardCUSUMNetwork
 from time import time
 
-TIMESERIES_LENGTH = 1024
-TRAIN_EXAMPLES = 8192
-TEST_EXAMPLES = 2048
-CHANGEPOINT_PROB = 0.01
+TIMESERIES_LENGTH = 64
+TRAIN_EXAMPLES = 128
+TEST_EXAMPLES = 64
+CHANGEPOINT_PROB = 0.05
 POSSIBLE_MEANS = list(range(-3, 4))
 GAUSSIAN_VARIANCE = 1
 NUM_EPOCHS = 1000
-MODEL = FeedforwardEarthmoverNetwork
-LOAD_STATE = "src/trained_models/feedforward_earthmover_network_weights_1024.pth"  # set to None to train from scratch
-SAVE_STATE = "src/trained_models/feedforward_earthmover_network_weights_1024.pth"  # set to None to not save weights
+MODEL = FeedforwardCUSUMNetwork
+LOAD_STATE = None  # set to None to train from scratch
+SAVE_STATE = None  # set to None to not save weights
 PLOT = False
 
 if PLOT:
@@ -70,7 +71,7 @@ if LOAD_STATE:
 
 model.train()
 
-criterion = model.earthmover_loss
+criterion = model.loss
 optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
 x_tensor = torch.from_numpy(x_train).float().to(device)
@@ -82,7 +83,7 @@ print("Training model...")
 start_time = time()
 for epoch in range(NUM_EPOCHS):
     y_pred = model(x_tensor)
-    loss = criterion(y_pred, y_tensor)
+    loss = criterion(y_pred, y_tensor, x_tensor)
 
     optimizer.zero_grad()
     loss.sum().backward()
@@ -124,7 +125,11 @@ print()
 
 model.eval()
 with torch.no_grad():
-    test_loss = criterion(model(x_test_tensor), y_test_tensor).mean().item()
+    test_loss = (
+        criterion(model(x_test_tensor), y_test_tensor, x_test_tensor).mean().item()
+    )
+    print(model(x_test_tensor))
+    print(y_test_tensor)
     print(f"Mean testing loss: {test_loss}")
     print()
 
